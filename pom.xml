@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
-		<jacoco.version>0.8.7</jacoco.version>
+		<jacoco.version>0.8.12</jacoco.version>
    		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
     		
 	</properties>
