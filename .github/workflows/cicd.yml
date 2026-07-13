@@ -89,6 +89,9 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         # host url when sonarqube is hosted on VM or on self-hosted machine and it is connected to same machine 
         # SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+
+    - name: Debug report-task.txt
+      run: cat .scannerwork/report-task.txt
         
     - name: SonarQube Quality Gate check
       id: sonarqube-quality-gate-check
