@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bankapp-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: {{ .Values.bankapp.service.type }}
+  selector:
+    app: bankapp
+  ports:
+    - port: {{ .Values.bankapp.service.port }}
+      targetPort: {{ .Values.bankapp.port }}

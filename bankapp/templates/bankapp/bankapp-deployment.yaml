@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bankapp
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.bankapp.replicas }}
+  selector:
+    matchLabels:
+      app: bankapp
+  template:
+    metadata:
+      labels:
+        app: bankapp
+    spec:
+      {{- if .Values.bankapp.initContainer.enabled }}
+      initContainers:
+        - name: wait-for-mysql
+          image: {{ .Values.bankapp.initContainer.image }}
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql-service {{ .Values.mysql.port }}; do
+                echo "waiting for mysql-service:{{ .Values.mysql.port }}...";
+                sleep {{ .Values.bankapp.initContainer.pollIntervalSeconds }};
+              done
+              echo "mysql-service:{{ .Values.mysql.port }} is accepting connections";
+      {{- end }}
+      containers:
+        - name: bankapp
+          image: "{{ .Values.bankapp.image.repository }}:{{ .Values.bankapp.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.bankapp.port }}
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-config
+                  key: DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bankapp-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bankapp-secret
+                  key: DB_PASSWORD
