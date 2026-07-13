@@ -72,12 +72,12 @@ jobs:
         name: app-jar
         path: target/*.jar
     - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@v5.0.0
+      uses: SonarSource/sonarqube-scan-action@0303d6b62e310685c0e34d0b9cde218036885c4d # v5.0.0
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     - name: SonarQube Quality Gate check
-      uses: sonarsource/sonarqube-quality-gate-action@master
+      uses: sonarsource/sonarqube-quality-gate-action@8e9b0ca0a7273d6f16986388d98393efdfcf56fd # git ls-remote https://github.com/SonarSource/sonarqube-quality-gate-action.git refs/heads/master
       with:
         pollingTimeoutSec: 600
       env:
