@@ -61,6 +61,9 @@ jobs:
         cache: maven
     - name: Run Tests with Coverage
       run: mvn test
+      env:
+        DB_USERNAME: ${{ secrets.DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
     - name: Build Project
       run: mvn package -DskipTests
     - name: Upload JAR artifact
@@ -72,7 +75,7 @@ jobs:
       uses: SonarSource/sonarqube-scan-action@v5.0.0
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
+
     - name: SonarQube Quality Gate check
       uses: sonarsource/sonarqube-quality-gate-action@master
       with:
