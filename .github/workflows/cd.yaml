@@ -1,0 +1,44 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:      # allows manual redeploy/rollback
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Apply namespace + RBAC (idempotent, safe to re-run)
+        run: |
+          kubectl apply -f k8s/rbac/namespace.yaml
+
+      - name: Apply MySQL layer
+        run: |
+          kubectl apply -f k8s/mysql/mysql-secret.yaml
+          kubectl apply -f k8s/mysql/mysql-configmap.yaml
+          kubectl apply -f k8s/mysql/mysql-pvc.yaml
+          kubectl apply -f k8s/mysql/mysql-deployment.yaml
+          kubectl apply -f k8s/mysql/mysql-service.yaml
+          kubectl rollout status deployment/mysql -n webapps --timeout=120s
+
+      - name: Apply bankapp layer
+        run: |
+          kubectl apply -f k8s/bankapp/bankapp-secret.yaml
+          kubectl apply -f k8s/bankapp/bankapp-deployment.yaml
+          kubectl apply -f k8s/bankapp/bankapp-service.yaml
+
+      - name: Roll to new image
+        run: |
+          kubectl set image deployment/bankapp bankapp=${{ vars.DOCKERHUB_USERNAME }}/bankapp:${{ github.event.workflow_run.head_sha }} -n webapps || true
+          kubectl rollout status deployment/bankapp -n webapps --timeout=180s
