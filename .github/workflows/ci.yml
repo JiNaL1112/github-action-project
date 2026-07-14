@@ -3,6 +3,8 @@ name: CI Pipeline
 on:
   push:
     branches: [ "master"  , "develop" , "feature/*" ]
+    paths-ignore:
+      - 'bankapp/values.yaml'
   pull_request:
     branches: [ "master"  ]
 
