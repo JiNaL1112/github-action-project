@@ -1,12 +1,10 @@
 namespace: webapps-prod
-
 bankapp:
   replicas: 2
   image:
-    tag: latest
+    tag: 7431c3136b52bb0927589c55eb602e472f8a2e92
   service:
     type: LoadBalancer
-
 mysql:
   storage: 5Gi
   # rootPassword / dbPassword: override via a separate untracked file or --set,
