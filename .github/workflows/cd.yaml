@@ -4,26 +4,68 @@ on:
   workflow_run:
     workflows: ["CI Pipeline"]
     types: [completed]
-    branches: [master]
+    branches: [develop, stage, master]
   workflow_dispatch:
     inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+        default: dev
       image_tag:
-        description: "Image tag to deploy (leave blank to use 'latest')"
+        description: "Image tag to deploy (leave blank to use the env default)"
         required: false
         default: ""
 
 permissions:
-  contents: write   # needed to push the values.yaml bump back to the repo
+  contents: write   # needed to push the values-<env>.yaml bump back to the repo
 
 jobs:
   update-image-tag:
     runs-on: ubuntu-latest
+    # Only proceed if CI succeeded, or this was triggered manually
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    # Prod deploys require a manual approval via the GitHub "production" Environment.
+    # Configure this under Settings -> Environments -> production -> Required reviewers.
+    environment: ${{ (github.event.workflow_run.head_branch == 'master' || github.event.inputs.environment == 'prod') && 'production' || '' }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITOPS_PAT }}
-          ref: master
+          ref: master   # values files for every env live on master; only image tags get bumped here
+
+      # ---------------------------------------------------------------
+      # Work out which environment we're deploying and which branch fed it
+      # ---------------------------------------------------------------
+      - name: Determine environment
+        id: envmap
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            case "${{ github.event.workflow_run.head_branch }}" in
+              develop) ENV="dev" ;;
+              stage)   ENV="stage" ;;
+              master)  ENV="prod" ;;
+              *)
+                echo "Branch '${{ github.event.workflow_run.head_branch }}' is not mapped to an environment, skipping."
+                exit 1
+                ;;
+            esac
+          fi
+          echo "env=$ENV" >> "$GITHUB_OUTPUT"
+
+          case "$ENV" in
+            dev)   echo "values_file=bankapp/values-dev.yaml" >> "$GITHUB_OUTPUT" ;;
+            stage) echo "values_file=bankapp/values-stage.yaml" >> "$GITHUB_OUTPUT" ;;
+            prod)  echo "values_file=bankapp/values-prod.yaml" >> "$GITHUB_OUTPUT" ;;
+          esac
 
       - name: Determine image tag
         id: tag
@@ -31,9 +73,18 @@ jobs:
           if [ -n "${{ github.event.inputs.image_tag }}" ]; then
             echo "tag=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            # Sensible per-env default when triggered manually with no explicit tag
+            case "${{ steps.envmap.outputs.env }}" in
+              dev)   echo "tag=dev" >> "$GITHUB_OUTPUT" ;;
+              stage) echo "tag=stage" >> "$GITHUB_OUTPUT" ;;
+              prod)  echo "tag=latest" >> "$GITHUB_OUTPUT" ;;
+            esac
           else
-            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+            case "${{ steps.envmap.outputs.env }}" in
+              dev)   echo "tag=dev" >> "$GITHUB_OUTPUT" ;;
+              stage) echo "tag=stage" >> "$GITHUB_OUTPUT" ;;
+              prod)  echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT" ;;
+            esac
           fi
 
       - name: Install yq
@@ -41,26 +92,28 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Bump bankapp image tag in Helm values
+      - name: Bump bankapp image tag in env-specific Helm values
         run: |
-          yq -i '.bankapp.image.tag = "${{ steps.tag.outputs.tag }}"' bankapp/values.yaml
+          yq -i '.bankapp.image.tag = "${{ steps.tag.outputs.tag }}"' ${{ steps.envmap.outputs.values_file }}
 
       - name: Show diff
-        run: git diff bankapp/values.yaml
+        run: git diff ${{ steps.envmap.outputs.values_file }}
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bankapp/values.yaml
+          git add ${{ steps.envmap.outputs.values_file }}
           if git diff --cached --quiet; then
-            echo "No changes to commit — image tag already up to date."
+            echo "No changes to commit — image tag already up to date for ${{ steps.envmap.outputs.env }}."
           else
-            git commit -m "ci: bump bankapp image to ${{ steps.tag.outputs.tag }}"
+            git commit -m "ci: bump bankapp (${{ steps.envmap.outputs.env }}) image to ${{ steps.tag.outputs.tag }}"
             git push origin HEAD:master
           fi
 
       - name: Summary
         run: |
+          echo "### Environment: \`${{ steps.envmap.outputs.env }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "### Deployed image tag: \`${{ steps.tag.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "ArgoCD will pick up this change on its next sync (default poll: ~3 min), or immediately if a webhook is configured." >> "$GITHUB_STEP_SUMMARY"
+          echo "### Values file updated: \`${{ steps.envmap.outputs.values_file }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "ArgoCD (bankapp-${{ steps.envmap.outputs.env }} Application) will pick up this change on its next sync (default poll: ~3 min), or immediately if a webhook is configured." >> "$GITHUB_STEP_SUMMARY"

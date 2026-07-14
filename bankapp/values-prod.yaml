@@ -1,0 +1,13 @@
+namespace: webapps-prod
+
+bankapp:
+  replicas: 2
+  image:
+    tag: latest
+  service:
+    type: LoadBalancer
+
+mysql:
+  storage: 5Gi
+  # rootPassword / dbPassword: override via a separate untracked file or --set,
+  # never commit real prod credentials

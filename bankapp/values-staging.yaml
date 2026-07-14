@@ -1,0 +1,11 @@
+namespace: webapps-stage
+
+bankapp:
+  replicas: 1
+  image:
+    tag: stage
+  service:
+    type: ClusterIP
+
+mysql:
+  storage: 2Gi
