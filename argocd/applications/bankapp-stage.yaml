@@ -12,7 +12,7 @@ spec:
     helm:
       valueFiles:
         - values.yaml
-        - values-staging.yaml
+        - values-stage.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: webapps-stage
