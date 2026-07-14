@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: bankapp-project
+  namespace: argocd
+spec:
+  description: Goldencat Bank - Spring Boot app + MySQL
+
+  # Which Git repos this project is allowed to pull manifests from
+  sourceRepos:
+    - https://github.com/JiNaL1112/github-action-project.git
+
+  # Which cluster + namespace combos apps in this project can deploy to
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: webapps
+
+  # Restrict which cluster-scoped resources can be created (empty = none allowed)
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+
+  # Restrict which namespaced resources can be created (wildcard = allow all kinds, scoped to the destinations above)
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+
+  # Optional: who's allowed to sync/delete manually via UI/CLI (RBAC roles)
+  roles:
+    - name: bankapp-admin
+      description: Full access to bankapp resources
+      policies:
+        - p, proj:bankapp-project:bankapp-admin, applications, *, bankapp-project/*, allow
+      groups:
+        - your-org:platform-team   # maps to an SSO/OIDC group if you have SSO configured

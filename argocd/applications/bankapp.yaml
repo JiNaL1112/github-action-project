@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bankapp
+  namespace: argocd
+spec:
+  project: bankapp-project
+  source:
+    repoURL: https://github.com/JiNaL1112/github-action-project.git
+    targetRevision: master
+    path: bankapp
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: webapps
+  syncPolicy:
+    automated:
+      prune: true       # remove resources deleted from Git
+      selfHeal: true     # revert manual kubectl changes
+    syncOptions:
+      - CreateNamespace=true
