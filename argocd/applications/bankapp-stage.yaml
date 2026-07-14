@@ -7,7 +7,7 @@ spec:
   project: bankapp-project
   source:
     repoURL: https://github.com/JiNaL1112/github-action-project.git
-    targetRevision: release
+    targetRevision: stage
     path: bankapp
     helm:
       valueFiles:
