@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bankapp-prod
+  namespace: argocd
+spec:
+  project: bankapp-project
+  source:
+    repoURL: https://github.com/JiNaL1112/github-action-project.git
+    targetRevision: master
+    path: bankapp
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: webapps-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

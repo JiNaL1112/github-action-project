@@ -1,0 +1,11 @@
+namespace: webapps-dev
+
+bankapp:
+  replicas: 1
+  image:
+    tag: dev
+  service:
+    type: ClusterIP   # no need for a LoadBalancer per env
+
+mysql:
+  storage: 1Gi

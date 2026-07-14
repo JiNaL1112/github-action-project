@@ -12,8 +12,12 @@ spec:
 
   # Which cluster + namespace combos apps in this project can deploy to
   destinations:
-    - server: https://kubernetes.default.svc
-      namespace: webapps
+  - server: https://kubernetes.default.svc
+    namespace: webapps-dev
+  - server: https://kubernetes.default.svc
+    namespace: webapps-stage
+  - server: https://kubernetes.default.svc
+    namespace: webapps-prod
 
   # Restrict which cluster-scoped resources can be created (empty = none allowed)
   clusterResourceWhitelist:
