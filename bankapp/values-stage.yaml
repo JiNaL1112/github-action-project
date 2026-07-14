@@ -2,7 +2,7 @@ namespace: webapps-stage
 bankapp:
   replicas: 1
   image:
-    tag: stage
+    tag: 7431c3136b52bb0927589c55eb602e472f8a2e92
   service:
     type: ClusterIP
 mysql:
