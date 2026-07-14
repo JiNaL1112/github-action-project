@@ -8,7 +8,7 @@ mysql:
 bankapp:
   image:
     repository: jpatel6625/bankapp
-    tag: adf16521a54037aeeff43e6ec54d26f3c54f7781
+    tag: 4744b096024846e4973455353c5ca331ce386ef3
   replicas: 1
   port: 8080
   dbUsername: root
