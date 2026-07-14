@@ -1,44 +1,66 @@
-name: CD Pipeline
+name: CD Pipeline (GitOps)
 
 on:
   workflow_run:
     workflows: ["CI Pipeline"]
     types: [completed]
     branches: [master]
-  workflow_dispatch:      # allows manual redeploy/rollback
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (leave blank to use 'latest')"
+        required: false
+        default: ""
+
+permissions:
+  contents: write   # needed to push the values.yaml bump back to the repo
 
 jobs:
-  deploy:
+  update-image-tag:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          ref: master
 
-      - name: Set Kubeconfig
+      - name: Determine image tag
+        id: tag
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Apply namespace + RBAC (idempotent, safe to re-run)
+      - name: Install yq
         run: |
-          kubectl apply -f k8s/rbac/namespace.yaml
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
-      - name: Apply MySQL layer
+      - name: Bump bankapp image tag in Helm values
         run: |
-          kubectl apply -f k8s/mysql/mysql-secret.yaml
-          kubectl apply -f k8s/mysql/mysql-configmap.yaml
-          kubectl apply -f k8s/mysql/mysql-pvc.yaml
-          kubectl apply -f k8s/mysql/mysql-deployment.yaml
-          kubectl apply -f k8s/mysql/mysql-service.yaml
-          kubectl rollout status deployment/mysql -n webapps --timeout=120s
+          yq -i '.bankapp.image.tag = "${{ steps.tag.outputs.tag }}"' bankapp/values.yaml
 
-      - name: Apply bankapp layer
-        run: |
-          kubectl apply -f k8s/bankapp/bankapp-secret.yaml
-          kubectl apply -f k8s/bankapp/bankapp-deployment.yaml
-          kubectl apply -f k8s/bankapp/bankapp-service.yaml
+      - name: Show diff
+        run: git diff bankapp/values.yaml
 
-      - name: Roll to new image
+      - name: Commit and push
         run: |
-          kubectl set image deployment/bankapp bankapp=${{ vars.DOCKERHUB_USERNAME }}/bankapp:${{ github.event.workflow_run.head_sha }} -n webapps || true
-          kubectl rollout status deployment/bankapp -n webapps --timeout=180s
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bankapp/values.yaml
+          if git diff --cached --quiet; then
+            echo "No changes to commit — image tag already up to date."
+          else
+            git commit -m "ci: bump bankapp image to ${{ steps.tag.outputs.tag }}"
+            git push origin HEAD:master
+          fi
+
+      - name: Summary
+        run: |
+          echo "### Deployed image tag: \`${{ steps.tag.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "ArgoCD will pick up this change on its next sync (default poll: ~3 min), or immediately if a webhook is configured." >> "$GITHUB_STEP_SUMMARY"
