@@ -32,7 +32,7 @@ jobs:
 
     # Prod deploys require a manual approval via the GitHub "production" Environment.
     # Configure this under Settings -> Environments -> production -> Required reviewers.
-    environment: ${{ (github.event.workflow_run.head_branch == 'master' || github.event.inputs.environment == 'prod') && 'production' || '' }}
+    environment: ${{ (github.event.workflow_run.head_branch == 'master' || github.event.inputs.environment == 'prod') && 'prod' || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +46,7 @@ jobs:
       - name: Determine environment
         id: envmap
         run: |
+          # If this was a manual trigger, use the input; otherwise map the branch to an env.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             ENV="${{ github.event.inputs.environment }}"
           else
@@ -81,8 +82,8 @@ jobs:
             esac
           else
             case "${{ steps.envmap.outputs.env }}" in
-              dev)   echo "tag=dev" >> "$GITHUB_OUTPUT" ;;
-              stage) echo "tag=stage" >> "$GITHUB_OUTPUT" ;;
+              dev)   echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT" ;;
+              stage) echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT" ;;
               prod)  echo "tag=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT" ;;
             esac
           fi
