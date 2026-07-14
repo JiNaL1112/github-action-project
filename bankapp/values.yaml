@@ -1,20 +1,18 @@
 namespace: webapps
-
 mysql:
   image: mysql:8
   port: 3306
   database: bankappdb
-  rootPassword: "Test@123"     # move to a secrets-only values file / --set in CI, don't commit real passwords
+  rootPassword: "Test@123" # move to a secrets-only values file / --set in CI, don't commit real passwords
   storage: 2Gi
-
 bankapp:
   image:
     repository: jpatel6625/bankapp
-    tag: latest
+    tag: adf16521a54037aeeff43e6ec54d26f3c54f7781
   replicas: 1
   port: 8080
   dbUsername: root
-  dbPassword: "Test@123"       # same note as above
+  dbPassword: "Test@123" # same note as above
   service:
     type: LoadBalancer
     port: 80
@@ -24,7 +22,6 @@ bankapp:
     # how long to wait for mysql-service:3306 before giving up (init containers
     # retry the whole loop indefinitely, this just controls the sleep interval)
     pollIntervalSeconds: 2
-
 # Set to false if the "webapps" namespace already exists / is managed elsewhere,
 # and instead run: helm install bankapp . --create-namespace --namespace webapps
 createNamespace: true
