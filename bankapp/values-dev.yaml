@@ -2,7 +2,7 @@ namespace: webapps-dev
 bankapp:
   replicas: 1
   image:
-    tag: 7431c3136b52bb0927589c55eb602e472f8a2e92
+    tag: dev
   service:
     type: ClusterIP # no need for a LoadBalancer per env
 mysql:
