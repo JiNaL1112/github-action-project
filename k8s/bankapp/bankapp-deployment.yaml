@@ -16,6 +16,11 @@ spec:
       containers:
         - name: bankapp
           image: jpatel6625/bankapp:latest
+          # Mount the Azure Key Vault secrets as files in the container
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
           ports:
             - containerPort: 8080
           env:
@@ -44,3 +49,12 @@ spec:
                 secretKeyRef:
                   name: bankapp-secret
                   key: DB_PASSWORD
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "bankapp-azure-kv"
+            nodePublishSecretRef:
+              name: secrets-store-creds

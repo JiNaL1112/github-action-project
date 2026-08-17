@@ -18,6 +18,8 @@ spec:
     namespace: webapps-stage
   - server: https://kubernetes.default.svc
     namespace: webapps-prod
+  - server: https://kubernetes.default.svc
+    namespace: webapps
 
   # Restrict which cluster-scoped resources can be created (empty = none allowed)
   clusterResourceWhitelist:
