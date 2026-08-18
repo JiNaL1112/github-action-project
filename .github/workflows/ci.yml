@@ -32,7 +32,24 @@ jobs:
 
     - name: Build with Maven
       run: mvn compile
-      
+  
+  gitleaks-scan:
+    runs-on: ubuntu-latest
+    needs: compile
+    permissions:
+      contents: read
+      security-events: write   # needed if uploading SARIF to Security tab
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # full history — gitleaks needs this to scan past commits
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+
   security-check:
     runs-on: ubuntu-latest
     needs: compile
