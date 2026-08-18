@@ -35,3 +35,14 @@ build/
 
 ### key-vault ###
 key-vault.md
+
+
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+terraform.tfstate
+.terraform/
+node_modules/
+dist/
