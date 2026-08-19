@@ -2,7 +2,7 @@ namespace: webapps-prod
 bankapp:
   replicas: 2
   image:
-    tag: a1c8685437b5cb5c16c330d2d2e7c4e58cdfecac
+    tag: a90ccf238173e95472b1eb11001008a28b94a615
   service:
     type: LoadBalancer
 mysql:
