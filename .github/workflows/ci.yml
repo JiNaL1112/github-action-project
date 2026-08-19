@@ -85,7 +85,7 @@ jobs:
 
     - name: Upload Trivy fs report as artifact
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
           name: trivy-fs-report
           path: trivy-fs-report.sarif
@@ -127,7 +127,7 @@ jobs:
       run: mvn package -DskipTests
 
     - name: Upload JAR artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: app-jar
         path: target/*.jar
