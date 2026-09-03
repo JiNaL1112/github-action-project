@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql
-  namespace: webapps
+  namespace: bankapp
 spec:
   replicas: 1
   selector:
@@ -15,12 +15,29 @@ spec:
       labels:
         app: mysql
     spec:
+      securityContext:
+        runAsNonRoot: true       
+        seccompProfile:
+          type: RuntimeDefault   
       containers:
         - name: mysql
           image: mysql:8
+          securityContext: 
+            allowPrivilegeEscalation: false   
+            readOnlyRootFilesystem: true      
+            capabilities:
+              drop:
+                - ALL                         
           ports:
             - containerPort: 3306
               name: mysql
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -29,13 +46,19 @@ spec:
                   key: MYSQL_ROOT_PASSWORD
             - name: MYSQL_DATABASE
               valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_DATABASE
+                configMapKeyRef:
+                  name: mysql-config
+                  key: DB_NAME
           volumeMounts:
-            - name: mysql-storage
-              mountPath: /var/lib/mysql
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
       volumes:
-        - name: mysql-storage
-          persistentVolumeClaim:
-            claimName: mysql-pvc
+         - name: secrets-store-inline
+           csi:
+             driver: secrets-store.csi.k8s.io
+             readOnly: true
+             volumeAttributes:
+                secretProviderClass: "bankapp-azure-kv"
+             nodePublishSecretRef:
+                name: secrets-store-creds

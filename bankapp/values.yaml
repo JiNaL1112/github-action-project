@@ -1,4 +1,4 @@
-namespace: webapps
+namespace: bankapp
 mysql:
   image: mysql:8
   port: 3306
@@ -14,7 +14,7 @@ bankapp:
   dbUsername: root
   dbPassword: "Test@123" # same note as above
   service:
-    type: LoadBalancer
+    type: ClusterIP
     port: 80
   initContainer:
     enabled: true
@@ -24,4 +24,4 @@ bankapp:
     pollIntervalSeconds: 2
 # Set to false if the "webapps" namespace already exists / is managed elsewhere,
 # and instead run: helm install bankapp . --create-namespace --namespace webapps
-createNamespace: true
+createNamespace: false

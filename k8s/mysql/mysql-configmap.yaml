@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-config
-  namespace: webapps
+  namespace: bankapp
 data:
   DB_HOST: "mysql-service"
   DB_PORT: "3306"
