@@ -26,6 +26,8 @@ spec:
         - name: mysql
           image: mysql:8
           securityContext:
+            runAsUser: 999   # trivy:ignore:KSV-0020 — mysql image's built-in uid, see deployment-level comment
+            runAsGroup: 999  # trivy:ignore:KSV-0021 — same reasoning
             allowPrivilegeEscalation: false   # KSV-0001
             readOnlyRootFilesystem: true      # KSV-0014
             capabilities:
