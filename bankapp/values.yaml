@@ -1,4 +1,4 @@
-namespace: webapps
+namespace: bankapp
 mysql:
   image: mysql:8
   port: 3306

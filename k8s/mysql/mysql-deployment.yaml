@@ -29,13 +29,19 @@ spec:
                   key: MYSQL_ROOT_PASSWORD
             - name: MYSQL_DATABASE
               valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_DATABASE
+                configMapKeyRef:
+                  name: mysql-config
+                  key: DB_NAME
           volumeMounts:
-            - name: mysql-storage
-              mountPath: /var/lib/mysql
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
       volumes:
-        - name: mysql-storage
-          persistentVolumeClaim:
-            claimName: mysql-pvc
+         - name: secrets-store-inline
+           csi:
+             driver: secrets-store.csi.k8s.io
+             readOnly: true
+             volumeAttributes:
+                secretProviderClass: "bankapp-azure-kv"
+             nodePublishSecretRef:
+                name: secrets-store-creds
