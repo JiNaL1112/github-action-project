@@ -15,12 +15,32 @@ spec:
       labels:
         app: mysql
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999     # mysql's own built-in uid — see note above re: KSV-0020
+        runAsGroup: 999    # same, re: KSV-0021
+        fsGroup: 999       # so the PVC is writable by that uid on mount
+        seccompProfile:
+          type: RuntimeDefault   # KSV-0030/KSV-0104
       containers:
         - name: mysql
           image: mysql:8
+          securityContext:
+            allowPrivilegeEscalation: false   # KSV-0001
+            readOnlyRootFilesystem: true      # KSV-0014
+            capabilities:
+              drop:
+                - ALL                          # KSV-0003/0004/0106
           ports:
             - containerPort: 3306
               name: mysql
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
