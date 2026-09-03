@@ -16,18 +16,13 @@ spec:
         app: mysql
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 999     
-        runAsGroup: 999    
-        fsGroup: 999       
+        runAsNonRoot: true       
         seccompProfile:
           type: RuntimeDefault   
       containers:
         - name: mysql
           image: mysql:8
-          securityContext:
-            runAsUser: 999   
-            runAsGroup: 999 
+          securityContext: 
             allowPrivilegeEscalation: false   
             readOnlyRootFilesystem: true      
             capabilities:
