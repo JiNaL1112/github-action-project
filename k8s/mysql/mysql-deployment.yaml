@@ -17,22 +17,22 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 999     # mysql's own built-in uid — see note above re: KSV-0020
-        runAsGroup: 999    # same, re: KSV-0021
-        fsGroup: 999       # so the PVC is writable by that uid on mount
+        runAsUser: 999     
+        runAsGroup: 999    
+        fsGroup: 999       
         seccompProfile:
-          type: RuntimeDefault   # KSV-0030/KSV-0104
+          type: RuntimeDefault   
       containers:
         - name: mysql
           image: mysql:8
           securityContext:
-            runAsUser: 999   # trivy:ignore:KSV-0020 — mysql image's built-in uid, see deployment-level comment
-            runAsGroup: 999  # trivy:ignore:KSV-0021 — same reasoning
-            allowPrivilegeEscalation: false   # KSV-0001
-            readOnlyRootFilesystem: true      # KSV-0014
+            runAsUser: 999   
+            runAsGroup: 999 
+            allowPrivilegeEscalation: false   
+            readOnlyRootFilesystem: true      
             capabilities:
               drop:
-                - ALL                          # KSV-0003/0004/0106
+                - ALL                         
           ports:
             - containerPort: 3306
               name: mysql

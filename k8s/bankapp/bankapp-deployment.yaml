@@ -15,12 +15,12 @@ spec:
     spec:
       # Pod-level securityContext applies to all containers + volumes
       securityContext:
-        runAsNonRoot: true        # KSV-0012: refuse to start if image tries to run as root
-        runAsUser: 10001          # KSV-0020: uid > 10000, avoids collision with host's user table
-        runAsGroup: 10001         # KSV-0021: same reasoning, for gid
-        fsGroup: 10001            # ensures mounted volumes are group-writable by that uid
+        runAsNonRoot: true       
+        runAsUser: 10001         
+        runAsGroup: 10001         
+        fsGroup: 10001           
         seccompProfile:
-          type: RuntimeDefault    # KSV-0030/KSV-0104: restricts available syscalls via the container runtime's default profile
+          type: RuntimeDefault    
       initContainers:
         - name: wait-for-mysql
           image: busybox:1.36
