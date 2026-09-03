@@ -98,5 +98,5 @@ spec:
               secretProviderClass: "bankapp-azure-kv"
             nodePublishSecretRef:
               name: secrets-store-creds
-         - name: tmp
-           emptyDir: {}
+        - name: tmp
+          emptyDir: {}
