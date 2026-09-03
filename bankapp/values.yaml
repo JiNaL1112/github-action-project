@@ -14,7 +14,7 @@ bankapp:
   dbUsername: root
   dbPassword: "Test@123" # same note as above
   service:
-    type: LoadBalancer
+    type: ClusterIP
     port: 80
   initContainer:
     enabled: true
