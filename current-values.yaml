@@ -1,0 +1,5 @@
+secrets-store-csi-driver:
+  syncSecret:
+    enabled: true
+  tokenRequests:
+  - audience: api://AzureADTokenExchange

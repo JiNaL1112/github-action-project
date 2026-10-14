@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bankapp
-  namespace: webapps
+  namespace: bankapp
 spec:
   replicas: 1
   selector:
@@ -13,14 +13,42 @@ spec:
       labels:
         app: bankapp
     spec:
+      # Pod-level securityContext applies to all containers + volumes
+      securityContext:
+        runAsNonRoot: true       
+        runAsUser: 10001         
+        runAsGroup: 10001         
+        fsGroup: 10001           
+        seccompProfile:
+          type: RuntimeDefault    
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z mysql-service 3306; do
+                echo "waiting for mysql-service:3306...";
+                sleep 2;
+              done
+              echo "mysql-service:3306 is accepting connections";
       containers:
         - name: bankapp
-          image: jpatel6625/bankapp:latest
+          image: jpatel6625/bankapp:a90ccf238173e95472b1eb11001008a28b94a615
+          securityContext:
+            allowPrivilegeEscalation: false   # KSV-0001: blocks setuid-style privilege escalation from inside the container
+            readOnlyRootFilesystem: true      # KSV-0014: container can't tamper with its own filesystem or drop a payload to disk
+            capabilities:
+              drop:
+                - ALL                          # KSV-0003/0004/0106: Spring Boot doesn't need any Linux capabilities (no raw sockets, no chown, etc.)
           # Mount the Azure Key Vault secrets as files in the container
           volumeMounts:
             - name: secrets-store-inline
               mountPath: "/mnt/secrets-store"
               readOnly: true
+            - name: tmp
+              mountPath: /tmp   # required because readOnlyRootFilesystem=true — Spring Boot/embedded Tomcat need a writable /tmp
           ports:
             - containerPort: 8080
           env:
@@ -49,6 +77,18 @@ spec:
                 secretKeyRef:
                   name: bankapp-secret
                   key: DB_PASSWORD
+          resources:
+            # KSV-0011/0015/0016/0018: without these, one runaway request or
+            # memory leak in this container can starve every other pod on
+            # the node — a self-inflicted DoS. Numbers below are a sane
+            # starting point for a Spring Boot app; watch actual usage
+            # (kubectl top pod) and tune.
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
       volumes:
         - name: secrets-store-inline
           csi:
@@ -58,3 +98,5 @@ spec:
               secretProviderClass: "bankapp-azure-kv"
             nodePublishSecretRef:
               name: secrets-store-creds
+        - name: tmp
+          emptyDir: {}
