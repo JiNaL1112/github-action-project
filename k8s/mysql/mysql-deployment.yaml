@@ -16,21 +16,21 @@ spec:
         app: mysql
     spec:
       securityContext:
-        runAsNonRoot: true 
+        runAsNonRoot: true
         runAsUser: 999
         runAsGroup: 999
-        fsGroup: 999      
+        fsGroup: 999
         seccompProfile:
-          type: RuntimeDefault   
+          type: RuntimeDefault
       containers:
         - name: mysql
           image: mysql:8
-          securityContext: 
-            allowPrivilegeEscalation: false   
-            readOnlyRootFilesystem: true      
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
-                - ALL                         
+                - ALL
           ports:
             - containerPort: 3306
               name: mysql
@@ -53,15 +53,28 @@ spec:
                   name: mysql-config
                   key: DB_NAME
           volumeMounts:
+            - name: mysql-storage              # added
+              mountPath: /var/lib/mysql
+            - name: tmp                        # added
+              mountPath: /tmp
+            - name: mysqld-run                 # added
+              mountPath: /var/run/mysqld
             - name: secrets-store-inline
               mountPath: "/mnt/secrets-store"
               readOnly: true
       volumes:
-         - name: secrets-store-inline
-           csi:
-             driver: secrets-store.csi.k8s.io
-             readOnly: true
-             volumeAttributes:
-                secretProviderClass: "bankapp-azure-kv"
-             nodePublishSecretRef:
-                name: secrets-store-creds
+        - name: mysql-storage                  # added
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - name: tmp                            # added
+          emptyDir: {}
+        - name: mysqld-run                     # added
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "bankapp-azure-kv"
+            nodePublishSecretRef:
+              name: secrets-store-creds
