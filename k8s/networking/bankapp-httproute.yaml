@@ -6,8 +6,9 @@ metadata:
   namespace: nginx-gateway
 spec:
   parentRefs:
-  - name: cluster-gateway
-    namespace: nginx-gateway
+  - name: istio-cluster-gateway
+    namespace: istio-ingress
+    sectionName: http-bankapp
   hostnames:
   - "bankapp.local"
   rules:
