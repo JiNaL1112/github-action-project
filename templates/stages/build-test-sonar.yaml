@@ -1,0 +1,88 @@
+parameters:
+    - name: dependsOn
+      type: object
+      default: security_check
+    - name: javaVersion
+      type: string
+      default: '17'
+    - name: sonarConnection
+      type: string
+      default: sonarcloud-conn
+    - name:  sonarOrganization
+      type: string
+      default: jinptl1112
+    - name: sonarProjectKey
+      type: string
+      default: jinptl1112_goldencatbank
+    - name: sonarProjectName
+      type: string
+      default: goldencatbank
+
+
+
+stages:
+  - stage: build_project_and_sonar_scan
+    dependsOn: ${{ parameters.dependsOn }}
+    jobs:
+      - job:
+        steps:
+          - task: JavaToolInstaller@1
+            inputs:
+              versionSpec: ${{ parameters.javaVersion }}
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          # connecting with sonarCloud and parseing extra properties to target specific project 
+          - task: SonarCloudPrepare@4
+            inputs:
+              SonarQube: ${{ parameters.sonarConnection }}
+              organization:  ${{ parameters.sonarOrganization }}
+              scannerMode: 'other'
+              extraProperties: |
+                sonar.projectKey=${{ parameters.sonarProjectKey }}
+                sonar.projectName=${{ parameters.sonarProjectName }}
+                sonar.sources=src/main/java
+                sonar.tests=src/test/java
+                sonar.java.binaries=target/classes
+                sonar.java.libraries=target/classes
+                sonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+          - task: Maven@4
+            displayName: Test, package and Sonar analysis
+            inputs:
+              mavenPomFile: 'pom.xml'
+              goals: 'verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'
+              options: '-B'
+              javaHomeOption: 'JDKVersion'
+              jdkVersionOption: '1.17'
+            env:
+              DB_USERNAME: $(DB_USERNAME)
+              DB_PASSWORD: $(DB_PASSWORD)
+
+          - script: |
+              test -f target/site/jacoco/jacoco.xml
+              head -20 target/site/jacoco/jacoco.xml
+            displayName: Verify JaCoCo report exists
+
+          - task: PublishCodeCoverageResults@2
+            inputs:
+              summaryFileLocation: '$(Build.SourcesDirectory)/target/site/jacoco/jacoco.xml'
+              pathToSources: '$(Build.SourcesDirectory)/src/main/java'
+
+          - script: mvn package -DskipTests
+            displayName: Build Project
+
+      
+          - task: SonarCloudPublish@4
+            inputs:
+              pollingTimeoutSec: '300'
+
+          - task: CopyFiles@2
+            inputs:
+              SourceFolder: '$(Build.SourcesDirectory)/target'
+              Contents: '*.jar'
+              TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+          - publish: $(Build.ArtifactStagingDirectory)
+            artifact: app-jar
+            displayName: Upload JAR artifact   

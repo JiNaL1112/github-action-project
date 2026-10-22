@@ -1,0 +1,53 @@
+# trigger set on master branch
+trigger: 
+  branches:
+    include:
+      - master
+      - feature/*
+  
+pr: 
+  branches:
+    include:
+      - master
+
+# pool image for ubuntu with specific version
+pool: 
+  vmImage: ubuntu-24.04
+
+variables:
+    - group: secrets-group
+
+
+stages:
+  - template: templates/stages/compile.yaml
+    parameters:
+      javaVersion: '17'
+
+  - template: templates/stages/gitleaks.yaml
+    parameters:
+      dependsOn: [Compile]
+
+  - template: templates/stages/security-scan.yaml
+    parameters:
+      dependsOn: [Compile]
+      javaVersion: '17'
+
+  - template: templates/stages/build-test-sonar.yaml
+    parameters:
+      dependsOn: [security_check]
+      javaVersion: '17'
+      sonarConnection: 'sonarcloud-conn'
+      sonarOrganization: 'jinptl1112'
+      sonarProjectKey: 'jinptl1112_goldencatbank'
+      sonarProjectName: 'goldencatbank'
+
+  - template: templates/stages/docker-build-push.yaml
+    parameters:
+      dependsOn: [build_project_and_sonar_scan]
+      registryConnection: 'acrplatformprodcac001-conn'
+      registry: 'acrplatformprodcac001.azurecr.io'
+      imageName: 'bankapp'
+         
+
+          
+            

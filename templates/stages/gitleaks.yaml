@@ -1,0 +1,18 @@
+parameters:
+- name: dependsOn
+  type: object
+  default: Compile
+
+stages:
+  - stage: gitLeaks_scan
+    dependsOn: ${{ parameters.dependsOn }}
+    jobs:
+      - job: 
+        steps:
+          - task: Gitleaks@3
+            inputs:
+              scanlocation: '$(Build.SourcesDirectory)'
+              configtype: 'default'
+              reportformat: 'sarif'
+              reportname: 'git-leak-report'
+              verbose: true

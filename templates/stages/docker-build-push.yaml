@@ -1,0 +1,67 @@
+parameters:
+    - name: dependsOn
+      type: object
+      default: build_project_and_sonar_scan
+    - name: registryConnection
+      type: string
+      default: acrplatformprodcac001-conn
+    - name: registry
+      type: string
+      default: acrplatformprodcac001.azurecr.io
+    - name: imageName
+      type: string
+      default: bankapp
+
+
+stages:
+  - stage:  docker_build_push
+    dependsOn:  ${{ parameters.dependsOn }}
+    variables:
+      IMAGE_NAME: ${{ parameters.imageName }}
+      REGISTRY: ${{ parameters.registry }}
+    jobs:
+      - job: 
+        steps:
+          - checkout: self
+          - task: DownloadPipelineArtifact@2
+            displayName: Download JAR artifact
+            inputs:
+              source: current
+              artifact: app-jar
+              targetPath: '$(Build.SourcesDirectory)/app'
+
+          - task: Docker@2
+            displayName: Build image
+            inputs:
+              containerRegistry: ${{ parameters.registryConnection }}
+              repository: '$(IMAGE_NAME)'
+              command: 'build'
+              Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+              buildContext: '$(Build.SourcesDirectory)'
+              tags: |
+                $(Build.SourceVersion)
+                latest
+
+          - task: trivy@2
+            displayName: Trivy image scan
+            continueOnError: true
+            inputs:
+              version: 'latest'
+              type: 'image'
+              target: '$(REGISTRY)/$(IMAGE_NAME):$(Build.SourceVersion)'
+              scanners: 'vuln'
+              severities: 'HIGH,CRITICAL'
+              ignoreUnfixed: true
+              failOnSeverityThreshold: 'HIGH'
+              reports: 'sarif'
+              publish: true
+
+          - task: Docker@2
+            displayName: Push image
+            inputs:
+              containerRegistry: ${{ parameters.registryConnection }}
+              repository: '$(IMAGE_NAME)'
+              command: 'push'
+              tags: |
+                $(Build.SourceVersion)
+                latest

@@ -1,0 +1,20 @@
+parameters:
+- name: javaVersion
+  type: string
+  default: '17'
+
+
+stages:
+  - stage: Compile
+    jobs:
+      - job:
+        steps:
+          # installation of java predefine version
+          - task: JavaToolInstaller@1
+            inputs:
+              versionSpec: ${{ parameters.javaVersion }}
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          - script: mvn compile
+            displayName: Build with Maven

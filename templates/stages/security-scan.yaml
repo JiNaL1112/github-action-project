@@ -1,0 +1,36 @@
+parameters:
+- name: dependsOn
+  type: object
+  default: Compile
+- name: javaVersion
+  type: string
+  default: '17'
+
+stages:
+  - stage: security_check
+    dependsOn: ${{ parameters.dependsOn }}
+    jobs:
+      - job:
+        steps:
+          - task: JavaToolInstaller@1
+            inputs:
+              versionSpec: ${{ parameters.javaVersion }}
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          - script:  mvn -B dependency:go-offline --file pom.xml
+            displayName: Build with Maven
+
+          - task: trivy@2
+            displayName: Run Trivy Scan (Allow Failures)
+            continueOnError: true
+            inputs:
+              version: 'latest'
+              type: 'filesystem'
+              scanners: 'vuln'
+              severities: 'HIGH,CRITICAL'
+              ignoreUnfixed: true
+              failOnSeverityThreshold: 'HIGH'
+              reports: 'sarif'
+              publish: true
+              target: .
