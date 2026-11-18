@@ -47,6 +47,18 @@ stages:
       registryConnection: 'acrplatformprodcac001-conn'
       registry: 'acrplatformprodcac001.azurecr.io'
       imageName: 'bankapp'
+
+  - template: templates/stages/deploy-appservice.yaml
+    parameters:
+      dependsOn: [docker_build_push]
+      azureSubscription: 'azure-appservice-conn'
+      resourceGroup: 'bankapp-rg'
+      webAppName: 'bankapp'
+      registry: 'acrplatformprodcac001.azurecr.io'
+      imageName: 'bankapp'
+      environment: 'bankapp-prod'
+      healthUrl: 'https://bankapp-hrhyfkfyg3btcyem.canadacentral-01.azurewebsites.net/login'
+        
          
 
           
